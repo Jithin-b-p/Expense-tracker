@@ -5,10 +5,12 @@ import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHt
 import express from "express";
 import http from "http";
 import cors from "cors";
+import dotenv from "dotenv";
 
 import mergedResolvers from "./resolvers/index.js";
 import mergedTypeDefs from "./typeDefs/index.js";
 
+dotenv.config();
 // Required logic for integrating with Express
 const app = express();
 // Our httpServer handles incoming requests to our Express app.
