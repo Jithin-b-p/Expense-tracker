@@ -10,6 +10,8 @@ import dotenv from "dotenv";
 import mergedResolvers from "./resolvers/index.js";
 import mergedTypeDefs from "./typeDefs/index.js";
 
+import { connectDB } from "./db/connectDB.js";
+
 dotenv.config();
 // Required logic for integrating with Express
 const app = express();
@@ -43,4 +45,5 @@ app.use(
 );
 
 await new Promise((resolve) => httpServer.listen({ port: 4000 }, resolve));
+await connectDB();
 console.log(`🚀 Server ready at http://localhost:4000/`);
