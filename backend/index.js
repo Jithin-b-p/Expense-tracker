@@ -6,41 +6,56 @@ import express from "express";
 import http from "http";
 import cors from "cors";
 import dotenv from "dotenv";
+import passport from "passport";
+import session from "express-session";
+import ConnectMongoDBSession from "connect-mongodb-session";
+import { buildContext } from "graphql-passport";
 
 import mergedResolvers from "./resolvers/index.js";
 import mergedTypeDefs from "./typeDefs/index.js";
-
 import { connectDB } from "./db/connectDB.js";
+import { configPassport } from "./passport/passport.config.js";
 
 dotenv.config();
-// Required logic for integrating with Express
+configPassport();
+
 const app = express();
-// Our httpServer handles incoming requests to our Express app.
-// Below, we tell Apollo Server to "drain" this httpServer,
-// enabling our servers to shut down gracefully.
 const httpServer = http.createServer(app);
 
-// Same ApolloServer initialization as before, plus the drain plugin
-// for our httpServer.
+const MongoDBStore = ConnectMongoDBSession(session);
+
+const store = new MongoDBStore({
+  uri: process.env.MONGO_URI,
+  collection: "sessions",
+});
+
+store.on("error", (err) => console.error("session store error:", err));
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store,
+    cookie: { maxAge: 1000 * 60 * 60 * 24 * 7, httpOnly: true },
+  })
+);
 const server = new ApolloServer({
   typeDefs: mergedTypeDefs,
   resolvers: mergedResolvers,
   plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
 });
-// Ensure we wait for our server to start
+
 await server.start();
 
-// Set up our Express middleware to handle CORS, body parsing,
-// and our expressMiddleware function.
 app.use(
   "/",
-  cors(),
-  // 50mb is the limit that `startStandaloneServer` uses, but you may configure this to suit your needs
+  cors({ origin: "http://localhost:3000", credentials: true }),
+
   express.json({ limit: "50mb" }),
-  // expressMiddleware accepts the same arguments:
-  // an Apollo Server instance and optional configuration options
+
   expressMiddleware(server, {
-    context: async ({ req }) => ({ token: req.headers.token }),
+    context: async ({ req, res }) => buildContext({ req, res }),
   })
 );
 
