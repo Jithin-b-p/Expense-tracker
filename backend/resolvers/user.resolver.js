@@ -3,9 +3,23 @@ import User from "../models/user.model.js";
 
 const userResolver = {
   Query: {
-    users: (_, _, { req, res }) => users,
-    user: (_, { userId }, { req, res }) => {
-      return users.find((user) => user._id === userId);
+    authuser: async (_, __, context) => {
+      try {
+        const user = await context.getUser();
+        return user;
+      } catch (err) {
+        console.error("Error in authuser: ", err);
+        throw new Error(err.message || "Internal server error");
+      }
+    },
+    user: async (_, { userId }) => {
+      try {
+        const user = await User.findById(userId);
+        return user;
+      } catch (err) {
+        console.error("Error in user query: ", err);
+        throw new Error(err.message || "Internal server error");
+      }
     },
   },
   Mutation: {
@@ -42,7 +56,7 @@ const userResolver = {
           return newUser;
         }
       } catch (err) {
-        console.error("Error in signup", err);
+        console.error("Error in signup: ", err);
         throw new Error(err.message || "Internal server error");
       }
     },
@@ -59,7 +73,7 @@ const userResolver = {
         await context.login(user);
         return user;
       } catch (err) {
-        console.error("Error in login", err);
+        console.error("Error in login: ", err);
         throw new Error(err.message || "Internal Server error");
       }
     },
@@ -79,7 +93,7 @@ const userResolver = {
 
         return { message: "Logout successfully" };
       } catch (err) {
-        console.error("Error in logout", err);
+        console.error("Error in logout: ", err);
         throw new Error(err.message || "Internal Server error");
       }
     },
